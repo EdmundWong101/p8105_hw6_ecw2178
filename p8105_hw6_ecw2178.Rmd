@@ -1,0 +1,113 @@
+---
+title: "p8105_hw6_ecw2178"
+output: github_document
+date: "2025-12-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+library(modelr)
+library(mgcv)
+```
+
+### Problem 1
+```{r}
+homicides_raw = read_csv("data/homicide-data.csv")
+
+homicides = homicides_raw %>% 
+  mutate(city_state = paste(city, state, sep = ", ")) %>% 
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
+  filter(victim_race %in% c("Black", "White")) %>% 
+  mutate(resolved = as.numeric(disposition == "Closed by arrest"),
+         victim_age = as.numeric(victim_age),
+         victim_race = fct_relevel(victim_race, "White"),
+         victim_sex = fct_relevel(victim_sex, "Female"))
+```
+
+```{r}
+baltimore_homicides = homicides %>% 
+  filter(city_state == "Baltimore, MD")
+
+baltimore_logit = glm(resolved ~ victim_age + victim_race + victim_sex, data = baltimore_homicides, family = binomial()) %>%
+  broom::tidy() 
+
+baltimore_OR = baltimore_logit %>% 
+  mutate(OR = exp(c(estimate), 
+         AdjSE = exp(c(std.error)))) %>% 
+  select(term, log_OR = estimate, OR, std.error, AdjSE, p.value) %>% 
+  knitr::kable(digits = 3)
+```
+
+The adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed is 0.426.
+
+```{r}
+city_states = unique(homicides$city_state)
+
+resolved_OR = function(city_state_input){
+  city_homicides = homicides %>% 
+    filter(city_state == city_state_input)
+  
+  city_logit = glm(resolved ~ victim_age + victim_race + victim_sex, data = city_homicides, family = binomial()) %>% 
+    broom::tidy() 
+  
+  city_OR = city_logit %>% 
+    mutate(OR = exp(estimate),
+           AdjSE = exp(std.error)) %>% 
+    select(term, log_OR = estimate, OR, std.error, AdjSE, p.value) 
+
+  return(tibble(
+    Term = city_OR$term,
+    Estimate = city_OR$OR,
+    CI = city_OR$AdjSE
+  ))
+}
+
+city_state_OR = 
+  tibble(all_cities = city_states) %>% 
+  mutate(results = map(all_cities, resolved_OR))
+
+unnest_city_state_OR = 
+  city_state_OR %>% 
+  unnest(results)
+
+#### Need to create plot and fix CI 
+```
+
+### Problem 2
+
+```{r}
+data("weather_df")
+
+lm(tmax ~ tmin + prcp, data = weather_df) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+
+boot_sample = function(df) {
+  sample_frac(df, replace = TRUE)
+}
+
+boot_straps = 
+  tibble(strap_number = 1:5000) |> 
+  mutate(
+    strap_sample = map(strap_number, \(i) boot_sample(df = weather_df))
+  )
+
+boot_straps
+```
+
+### Problem 3
+
+```{r}
+birthweight_raw = read_csv("data/birthweight.csv")
+str(birthweight_raw)
+```
+
+```{r}
+
+```
+
