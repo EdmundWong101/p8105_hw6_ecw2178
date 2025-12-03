@@ -83,21 +83,56 @@ unnest_city_state_OR =
 ```{r}
 data("weather_df")
 
-lm(tmax ~ tmin + prcp, data = weather_df) %>% 
+
+weather_test = lm(tmax ~ tmin + prcp, data = weather_df)
+
+test_rsquared = weather_test %>% 
+  broom::glance() %>% 
+  select(r.squared)
+
+test_betas = weather_test %>% 
   broom::tidy() %>% 
-  knitr::kable(digits = 3)
+  filter(term %in% c("tmin", "prcp")) %>%
+  select(term, estimate) %>%
+  pivot_wider(names_from = term, values_from = estimate) %>% 
+  mutate(predictors_divided = tmin/prcp)
+
+test_results = tibble(
+  rsquared = test_rsquared$r.squared,
+  betas_div = test_betas$predictors_divided
+)
+
+
 
 boot_sample = function(df) {
-  sample_frac(df, replace = TRUE)
+  df_sample = sample_frac(df, replace = TRUE)
+  
+  weather_test = lm(tmax ~ tmin + prcp, data = df_sample)
+
+  test_rsquared = weather_test %>% 
+    broom::glance() %>% 
+    select(r.squared)
+  
+  test_betas = weather_test %>% 
+    broom::tidy() %>% 
+    filter(term %in% c("tmin", "prcp")) %>%
+    select(term, estimate) %>%
+    pivot_wider(names_from = term, values_from = estimate) %>% 
+    mutate(predictors_divided = tmin/prcp)
+  
+  return(tibble(
+    rsquared = test_rsquared$r.squared,
+    betas_div = test_betas$predictors_divided
+  ))
 }
 
 boot_straps = 
-  tibble(strap_number = 1:5000) |> 
+  tibble(strap_number = 1:5000) %>% 
   mutate(
     strap_sample = map(strap_number, \(i) boot_sample(df = weather_df))
-  )
+  ) %>% 
+  unnest(strap_sample)
 
-boot_straps
 ```
 
 ### Problem 3
