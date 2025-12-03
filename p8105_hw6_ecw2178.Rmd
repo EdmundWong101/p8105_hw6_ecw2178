@@ -20,6 +20,7 @@ library(mgcv)
 homicides_raw = read_csv("data/homicide-data.csv")
 
 homicides = homicides_raw %>% 
+  janitor::clean_names() %>%
   mutate(city_state = paste(city, state, sep = ", ")) %>% 
   filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
   filter(victim_race %in% c("Black", "White")) %>% 
@@ -75,7 +76,7 @@ unnest_city_state_OR =
   city_state_OR %>% 
   unnest(results)
 
-#### Need to create plot and fix CI 
+#### Need to create plot and fix CI - plots needs to be saved and put in folders
 ```
 
 ### Problem 2
@@ -131,7 +132,7 @@ boot_straps =
   ) %>% 
   unnest(strap_sample)
 
-#### Plot and find confidence intervals
+#### Plot and find confidence intervals- plots needs to be saved and put in folders
 
 ```
 
@@ -140,6 +141,31 @@ boot_straps =
 ```{r}
 birthweight_raw = read_csv("data/birthweight.csv")
 str(birthweight_raw)
+
+# Is race an ordered factor here? Does it matter? 
+
+birthweight = birthweight_raw %>% 
+  janitor::clean_names() %>%
+  mutate(babysex = recode(babysex, "1" = "male", "2" = "female"),
+         frace = recode(frace, "1" = "White",
+                      "2" = "Black",
+                      "3" = "Asian",
+                      "4" = "Puerto Rican",
+                      "8" = "Other",
+                      "9" = "Unknown"),
+         malform = recode(malform, "0" = "absent", "1" = "present"),
+         mrace = recode(mrace, "1" = "White",
+                      "2" = "Black",
+                      "3" = "Asian",
+                      "4" = "Puerto Rican",
+                      "8" = "Other")) %>%
+  mutate(babysex = factor(babysex, levels = c("male", "female"), ordered = TRUE),
+         frace = factor(frace, levels = c("White", "Black", "Asian", "Puerto Rican", "Other","Unknown"), ordered = TRUE),
+         malform = factor(malform, levels = c("absent", "1" = "present"), ordered = TRUE),
+         mrace = factor(mrace, levels = c("White", "Black", "Asian", "Puerto Rican", "Other"), ordered = TRUE))
+
+str(birthweight)
+
 ```
 
 ```{r}
