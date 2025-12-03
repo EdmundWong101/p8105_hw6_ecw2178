@@ -83,7 +83,6 @@ unnest_city_state_OR =
 ```{r}
 data("weather_df")
 
-
 weather_test = lm(tmax ~ tmin + prcp, data = weather_df)
 
 test_rsquared = weather_test %>% 
@@ -101,7 +100,6 @@ test_results = tibble(
   rsquared = test_rsquared$r.squared,
   betas_div = test_betas$predictors_divided
 )
-
 
 
 boot_sample = function(df) {
@@ -132,6 +130,8 @@ boot_straps =
     strap_sample = map(strap_number, \(i) boot_sample(df = weather_df))
   ) %>% 
   unnest(strap_sample)
+
+#### Plot and find confidence intervals
 
 ```
 
